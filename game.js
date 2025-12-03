@@ -23,6 +23,7 @@ let enemyVel = vec2(.05, 0);
 let speed = .5;
 let miss = false;
 let missCount = 0;
+let sensitivity = .35;
 let timer1 = new Timer(1.5);
 let timer2 = new Timer(6);
 let timer3 = new Timer(.2);
@@ -31,6 +32,9 @@ let timer5 = new Timer(.8);
 let patternChangeTimer = new Timer;
 let patternChangeCooldown = true;
 let despawnTimer = new Timer(.08);
+let enemyBar;
+let enemyBarLengthOriginal = 50;
+let enemyBarLength = enemyBarLengthOriginal;
 let deleteOnce = true;
 let gameOver = false;
 let bulletPosition = vec2(levelSize.x / 2, 29);
@@ -61,11 +65,11 @@ class hit extends EngineObject
         this.pos.x = clamp(this.pos.x, this.size.x / 2, levelSize.x - this.size.x / 2);
         this.pos.y = playerPos.y;
         this.pos.y = clamp(this.pos.y, this.size.y / 2, levelSize.y - this.size.y / 2);
-        this.color = new Color(0, 1, 0, 1);
     }
     constructor()
     {
         super(vec2(0, 1), vec2(.2, .2));
+        this.color = new Color(0, 1, 0, 1);
         this.setCollision();
         this.mass = 0;
     }
@@ -85,6 +89,7 @@ class playerBullet extends EngineObject
         if (o === enemy)
         {
             enemy.hp -= 2;
+            enemyBarLength = enemyBarLengthOriginal * (.01 * (enemy.hp / (enemyHP * .01)));
             this.destroy();
             return true;
         }
@@ -134,20 +139,32 @@ class enBullet extends EngineObject
     }
 }
 
+class enmBar extends EngineObject
+{
+    update()
+    {
+        this.size.x = enemyBarLength;
+    }
+    constructor()
+    {
+        super(vec2(levelSize.x / 2, 30.5), vec2(enemyBarLength, .2));
+    }
+}
+
 function movement()
 {
     slowMovement();
-    if (keyIsDown('ArrowUp'))
+    if (keyIsDown('ArrowUp') || gamepadIsDown('12') || gamepadStick('0').y > sensitivity)
     {
         playerPos.y += speed;
-    }else if (keyIsDown('ArrowDown'))
+    }else if (keyIsDown('ArrowDown') || gamepadIsDown('13') || gamepadStick('0').y < -sensitivity)
     {
         playerPos.y -= speed;
     }
-    if (keyIsDown('ArrowRight'))
+    if (keyIsDown('ArrowRight') || gamepadIsDown('15') || gamepadStick('0').x > sensitivity)
     {
         playerPos.x += speed;
-    }else if (keyIsDown('ArrowLeft'))
+    }else if (keyIsDown('ArrowLeft') || gamepadIsDown('14') || gamepadStick('0').x < -sensitivity)
     {
         playerPos.x -= speed;
     }
@@ -157,7 +174,7 @@ function movement()
 
 function slowMovement()
 {
-    if (keyIsDown('KeyI'))
+    if (keyIsDown('KeyI') || gamepadIsDown('2'))
     {
         speed = .15;
     }else
@@ -168,7 +185,7 @@ function slowMovement()
 
 function fire()
 {
-    if (keyIsDown('KeyJ'))
+    if (keyIsDown('KeyJ') || gamepadIsDown('0'))
     {
         if (timer4.elapsed())
         {
@@ -317,6 +334,7 @@ function livesMinus()
     sprite.destroy();
     hitbox.destroy();
     lives--;
+    vibrate(500);
 }
 
 function checkEnemyHealth()
@@ -331,6 +349,7 @@ function checkEnemyHealth()
         {
             new ParticleEmitter(enemy.pos, 0, 0, .1, 100, 3.14, 0, enemy.color, enemy.color, enemy.color.scale(1, 0), enemy.color.scale(1, 0), .5, .1, 1, .1, .1, 1, 1, 0, 3.14, .1, .2, 0, 0, 1);
             enemy.destroy();
+            enemyBar.destroy();
             deleteOnce = false;
         }
     }
@@ -350,9 +369,11 @@ function setup()
     sprite = new player;
     hitbox = new hit;
     enemy = new enemySprite(enemyHP);
+    enemyBar = new enmBar;
     bulletSpawner();
     setCanvasFixedSize(vec2(1920, 1080));
     setCameraPos(levelSize.scale(.5));
+    vibrateStop();
 }
 
 function gameInit()
