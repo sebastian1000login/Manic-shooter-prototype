@@ -15,6 +15,11 @@ let bulletIntensity = .8;
 let enemy;
 let enemyHP = 1000;
 let i = 0;
+let bulletAdvance = .2;
+let patternCount = 0;
+let patternCount2 = 0;
+let patternCount3 = 0;
+let startTimerOnce = true;
 let expand = true;
 let score = 0;
 let lives = 3;
@@ -23,14 +28,21 @@ let enemyVel = vec2(.05, 0);
 let speed = .5;
 let miss = false;
 let missCount = 0;
+let sensitivity = .35;
 let timer1 = new Timer(1.5);
 let timer2 = new Timer(6);
 let timer3 = new Timer(.2);
 let timer4 = new Timer(.1);
 let timer5 = new Timer(.8);
+let timer6 = new Timer(.01);
+let timer7 = new Timer(.4);
+let timer8 = new Timer(.35);
 let patternChangeTimer = new Timer;
 let patternChangeCooldown = true;
 let despawnTimer = new Timer(.08);
+let enemyBar;
+let enemyBarLengthOriginal = 50;
+let enemyBarLength = enemyBarLengthOriginal;
 let deleteOnce = true;
 let gameOver = false;
 let bulletPosition = vec2(levelSize.x / 2, 29);
@@ -61,11 +73,11 @@ class hit extends EngineObject
         this.pos.x = clamp(this.pos.x, this.size.x / 2, levelSize.x - this.size.x / 2);
         this.pos.y = playerPos.y;
         this.pos.y = clamp(this.pos.y, this.size.y / 2, levelSize.y - this.size.y / 2);
-        this.color = new Color(0, 1, 0, 1);
     }
     constructor()
     {
         super(vec2(0, 1), vec2(.2, .2));
+        this.color = new Color(0, 1, 0, 1);
         this.setCollision();
         this.mass = 0;
     }
@@ -85,6 +97,7 @@ class playerBullet extends EngineObject
         if (o === enemy)
         {
             enemy.hp -= 2;
+            enemyBarLength = enemyBarLengthOriginal * (.01 * (enemy.hp / (enemyHP * .01)));
             this.destroy();
             return true;
         }
@@ -134,20 +147,32 @@ class enBullet extends EngineObject
     }
 }
 
+class enmBar extends EngineObject
+{
+    update()
+    {
+        this.size.x = enemyBarLength;
+    }
+    constructor()
+    {
+        super(vec2(levelSize.x / 2, 30.5), vec2(enemyBarLength, .2));
+    }
+}
+
 function movement()
 {
     slowMovement();
-    if (keyIsDown('ArrowUp'))
+    if (keyIsDown('ArrowUp') || gamepadIsDown('12') || gamepadStick('0').y > sensitivity)
     {
         playerPos.y += speed;
-    }else if (keyIsDown('ArrowDown'))
+    }else if (keyIsDown('ArrowDown') || gamepadIsDown('13') || gamepadStick('0').y < -sensitivity)
     {
         playerPos.y -= speed;
     }
-    if (keyIsDown('ArrowRight'))
+    if (keyIsDown('ArrowRight') || gamepadIsDown('15') || gamepadStick('0').x > sensitivity)
     {
         playerPos.x += speed;
-    }else if (keyIsDown('ArrowLeft'))
+    }else if (keyIsDown('ArrowLeft') || gamepadIsDown('14') || gamepadStick('0').x < -sensitivity)
     {
         playerPos.x -= speed;
     }
@@ -157,7 +182,7 @@ function movement()
 
 function slowMovement()
 {
-    if (keyIsDown('KeyI'))
+    if (keyIsDown('KeyI') || gamepadIsDown('2'))
     {
         speed = .15;
     }else
@@ -168,7 +193,7 @@ function slowMovement()
 
 function fire()
 {
-    if (keyIsDown('KeyJ'))
+    if (keyIsDown('KeyJ') || gamepadIsDown('0'))
     {
         if (timer4.elapsed())
         {
@@ -224,6 +249,7 @@ function enemyPattern2()
         bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.8, 0)));
         bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.6, .1)));
         bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.5, .2)));
+        patternCount++;
     }
 }
 
@@ -232,6 +258,7 @@ function enemyPattern3()
     if (timer5.elapsed())
     {
         timer5.set(.8);
+        patternCount3++;
         bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.6, 0)));
         bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.5, 0)));
         bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.4, 0)));
@@ -246,6 +273,67 @@ function enemyPattern3()
     }
 }
 
+function enemyPattern4()
+{
+    if (timer6.elapsed() && bulletAdvance <= 1)
+    {
+        timer6.set(.01);
+        bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(bulletAdvance, 0)));
+        bulletAdvance += .02;
+    }else
+    {
+        if (startTimerOnce)
+        {
+            timer7.set(.2);
+            startTimerOnce = false;
+        }
+        if (timer7.elapsed())
+        {
+            bulletAdvance = .2;
+            startTimerOnce = true;
+            patternCount++;
+        }
+    }
+}
+
+function enemyPattern5()
+{
+    if (timer8.elapsed())
+    {
+        timer8.set(.2);
+        if (patternCount2 < 5)
+        {
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.5, 0)));
+            patternCount2++;
+        }else
+        {
+            patternCount2 = 0;
+            patternCount3++;
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.5, 0)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.49, .05)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.48, .1)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.47, .15)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.46, .2)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.45, .25)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.44, .3)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.43, .35)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.42, .4)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.41, .45)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.4, .5)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.49, -.05)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.48, -.1)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.47, -.15)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.46, -.2)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.45, -.25)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.44, -.3)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.43, -.35)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.42, -.4)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.41, -.45)));
+            bullets.push(enemyBullet = new enBullet(bulletPosition, .5, vec2(.4, -.5)));
+        }
+    }
+}
+
 function bulletOutOfBounds()
 {
     if (despawnTimer.elapsed())
@@ -257,7 +345,7 @@ function bulletOutOfBounds()
                 if (bullets[i].pos.x < 0 || bullets[i].pos.y < 0 || bullets[i].pos.x > levelSize.x || bullets[i].pos.y > levelSize.y)
                 {
                     bullets[i].destroy();
-                    bullets[i] = 0;
+                    bullets.splice(i, 1);
                 }
             }
         }
@@ -268,7 +356,7 @@ function bulletOutOfBounds()
                 if (playerBullets[i].pos.x < 0 || playerBullets[i].pos.y < 0 || playerBullets[i].pos.x > levelSize.x || playerBullets[i].pos.y > levelSize.y)
                 {
                     playerBullets[i].destroy();
-                    playerBullets[i] = 0;
+                    playerBullets.splice(i, 1);
                 }
             }
         }
@@ -282,8 +370,18 @@ function bulletSpawner()
     {
         if (enemy.hp > enemyHP / 2)
         {
-            enemyPattern1();
-            enemyPattern2();
+            if (patternCount <= 5)
+            {
+                enemyPattern1();
+                enemyPattern2();
+            }else if (patternCount <= 10)
+            {
+                enemyPattern4();
+            }else
+            {
+                patternCount = 0;
+            }
+            
         }
         if (enemy.hp < enemyHP / 2)
         {
@@ -294,7 +392,16 @@ function bulletSpawner()
             }
             if (patternChangeTimer.elapsed())
             {
-                enemyPattern3();
+                if (patternCount3 < 6)
+                {
+                    enemyPattern3();
+                }else if (patternCount3 < 15)
+                {
+                    enemyPattern5();
+                }else
+                {
+                    patternCount3 = 0;
+                }
             }
         }
     }
@@ -317,6 +424,7 @@ function livesMinus()
     sprite.destroy();
     hitbox.destroy();
     lives--;
+    vibrate(500);
 }
 
 function checkEnemyHealth()
@@ -331,6 +439,7 @@ function checkEnemyHealth()
         {
             new ParticleEmitter(enemy.pos, 0, 0, .1, 100, 3.14, 0, enemy.color, enemy.color, enemy.color.scale(1, 0), enemy.color.scale(1, 0), .5, .1, 1, .1, .1, 1, 1, 0, 3.14, .1, .2, 0, 0, 1);
             enemy.destroy();
+            enemyBar.destroy();
             deleteOnce = false;
         }
     }
@@ -350,9 +459,11 @@ function setup()
     sprite = new player;
     hitbox = new hit;
     enemy = new enemySprite(enemyHP);
+    enemyBar = new enmBar;
     bulletSpawner();
     setCanvasFixedSize(vec2(1920, 1080));
     setCameraPos(levelSize.scale(.5));
+    vibrateStop();
 }
 
 function gameInit()
@@ -367,6 +478,7 @@ function gameUpdate()
     checkEnemyHealth();
     bulletOutOfBounds();
     console.log(enemy.hp);
+    console.log(patternCount);
     
 }
 
